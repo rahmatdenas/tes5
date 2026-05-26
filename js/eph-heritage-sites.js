@@ -390,16 +390,6 @@ if (record.pastImage) {
   
   record.panelElem = panelElem;
 
-  let panelElem = document.createElement('div');
-  panelElem.innerHTML =
-    `<a class="main-wikidata-link" href="https://www.wikidata.org/wiki/${qid}" title="Lihat di Wikidata">` +
-    '<img src="img/wikidata_tiny_logo.png" alt="[Lihat item Wikidata]" /></a>' +
-    titleHtml +
-    figureHtml + // <--- Semua gambar (utama + tambahan) otomatis mengalir di sini
-    articleHtml +
-    designationsHtml;
-  record.panelElem = panelElem;
-
   if (record.articleTitle) displayArticleExtract(record.articleTitle, panelElem.querySelector('.article'));
   queryOsm(qid);
 }
