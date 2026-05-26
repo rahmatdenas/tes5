@@ -30,25 +30,25 @@ AGM: 'Kabupaten Agam',
 // 3. DESIGNATION_TYPES: Kita akali dengan ID Wikidata Kabupaten/Kota
 // Ini yang akan dibaca oleh Dropdown template Anda
 const DESIGNATION_TYPES = {
-Q_AGM: { org: 'AGM', name: 'Kabupaten Agam', order: 1 },
-  Q_DHM: { org: 'DHM', name: 'Kabupaten Dharmasraya', order: 2 },
-  Q_MTW: { org: 'MTW', name: 'Kabupaten Kepulauan Mentawai', order: 3 },
-  Q_LPK: { org: 'LPK', name: 'Kabupaten Lima Puluh Kota', order: 4 },
-  Q_PDP: { org: 'PDP', name: 'Kabupaten Padang Pariaman', order: 5 },
-  Q_PSM: { org: 'PSM', name: 'Kabupaten Pasaman', order: 6 },
-  Q_PSB: { org: 'PSB', name: 'Kabupaten Pasaman Barat', order: 7 },
-  Q_PSS: { org: 'PSS', name: 'Kabupaten Pesisir Selatan', order: 8 },
-  Q_SJJ: { org: 'SJJ', name: 'Kabupaten Sijunjung', order: 9 },
-  Q_SLK: { org: 'SLK', name: 'Kabupaten Solok', order: 10 },
-  Q_SLS: { org: 'SLS', name: 'Kabupaten Solok Selatan', order: 11 },
-  Q_TND: { org: 'TND', name: 'Kabupaten Tanah Datar', order: 12 },
-  Q_BKT: { org: 'BKT', name: 'Kota Bukittinggi', order: 13 },
-  Q_PDG: { org: 'PDG', name: 'Kota Padang', order: 14 },
-  Q_PPJ: { org: 'PPJ', name: 'Kota Padang Panjang', order: 15 },
-  Q_PRM: { org: 'PRM', name: 'Kota Pariaman', order: 16 },
-  Q_PYK: { org: 'PYK', name: 'Kota Payakumbuh', order: 17 },
-  Q_SWL: { org: 'SWL', name: 'Kota Sawahlunto', order: 18 },
-  Q_KSL: { org: 'KSL', name: 'Kota Solok', order: 19 },
+  Q6019: { org: 'AGM', name: 'Kabupaten Agam', order: 1 },
+  Q6024: { org: 'DHM', name: 'Kabupaten Dharmasraya', order: 2 },
+  Q6038: { org: 'MTW', name: 'Kabupaten Kepulauan Mentawai', order: 3 },
+  Q6032: { org: 'LPK', name: 'Kabupaten Lima Puluh Kota', order: 4 },
+  Q6042: { org: 'PDP', name: 'Kabupaten Padang Pariaman', order: 5 },
+  Q6048: { org: 'PSM', name: 'Kabupaten Pasaman', order: 6 },
+  Q6103: { org: 'PSB', name: 'Kabupaten Pasaman Barat', order: 7 },
+  Q6065: { org: 'PSS', name: 'Kabupaten Pesisir Selatan', order: 8 },
+  Q6055: { org: 'SJJ', name: 'Kabupaten Sijunjung', order: 9 },
+  Q6058: { org: 'SLK', name: 'Kabupaten Solok', order: 10 },
+  Q6083: { org: 'SLS', name: 'Kabupaten Solok Selatan', order: 11 },
+  Q6093: { org: 'TND', name: 'Kabupaten Tanah Datar', order: 12 },
+  Q7248: { org: 'BKT', name: 'Kota Bukittinggi', order: 13 },
+  Q7253: { org: 'PDG', name: 'Kota Padang', order: 14 },
+  Q7256: { org: 'PPJ', name: 'Kota Padang Panjang', order: 15 },
+  Q7258: { org: 'PRM', name: 'Kota Pariaman', order: 16 },
+  Q7261: { org: 'PYK', name: 'Kota Payakumbuh', order: 17 },
+  Q7263: { org: 'SWL', name: 'Kota Sawahlunto', order: 18 },
+  Q7266: { org: 'KSL', name: 'Kota Solok', order: 19 },
   // Tambahkan ID Kab/Kota lain di sini dan pastikan urutannya (order) diteruskan
 }
 
@@ -58,8 +58,7 @@ const SPARQL_QUERY_0 =
 `SELECT ?siteQid ?siteLabel ?designationQid ?p131Label ?tahunBerdiriMentah WHERE {
   {
     # 1. Kunci wilayahnya
-    VALUES ?designation { wd:Q7253 wd:Q7248 wd:Q7258 }
-    
+VALUES ?designation { wd:Q6019 wd:Q6024 wd:Q6038 wd:Q6032 wd:Q6042 wd:Q6048 wd:Q6103 wd:Q6065 wd:Q6055 wd:Q6058 wd:Q6083 wd:Q6093 wd:Q7248 wd:Q7253 wd:Q7256 wd:Q7258 wd:Q7261 wd:Q7263 wd:Q7266 }    
     # 2. Matikan otak otomatis server
     hint:Query hint:optimizer "None" .
     
