@@ -5,19 +5,50 @@ const BASE_TITLE = 'Peta Persebaran Masjid – Sumatera Barat';
 
 // 2. ORGS: Kita akali menjadi singkatan nama daerah untuk label
 const ORGS = {
-  PDG: 'Kota Padang',
-  PRM: 'Kota Pariaman',
+AGM: 'Kabupaten Agam',
+  DHM: 'Kabupaten Dharmasraya',
+  MTW: 'Kabupaten Kepulauan Mentawai',
+  LPK: 'Kabupaten Lima Puluh Kota',
+  PDP: 'Kabupaten Padang Pariaman',
+  PSM: 'Kabupaten Pasaman',
+  PSB: 'Kabupaten Pasaman Barat',
+  PSS: 'Kabupaten Pesisir Selatan',
+  SJJ: 'Kabupaten Sijunjung',
+  SLK: 'Kabupaten Solok',
+  SLS: 'Kabupaten Solok Selatan',
+  TND: 'Kabupaten Tanah Datar',
   BKT: 'Kota Bukittinggi',
-  AGM: 'Kabupaten Agam',
+  PDG: 'Kota Padang',
+  PPJ: 'Kota Padang Panjang',
+  PRM: 'Kota Pariaman',
+  PYK: 'Kota Payakumbuh',
+  SWL: 'Kota Sawahlunto',
+  KSL: 'Kota Solok',
   // Tambahkan singkatan lain jika perlu
 }
 
 // 3. DESIGNATION_TYPES: Kita akali dengan ID Wikidata Kabupaten/Kota
 // Ini yang akan dibaca oleh Dropdown template Anda
 const DESIGNATION_TYPES = {
-  Q7253 : { org: 'PDG', name: 'Kota Padang'      , order: 1 },
-  Q7248 : { org: 'BKT', name: 'Kota Bukittinggi' , order: 2 },
-  Q7258 : { org: 'PRM', name: 'Kota Pariaman'    , order: 3 },
+Q_AGM: { org: 'AGM', name: 'Kabupaten Agam', order: 1 },
+  Q_DHM: { org: 'DHM', name: 'Kabupaten Dharmasraya', order: 2 },
+  Q_MTW: { org: 'MTW', name: 'Kabupaten Kepulauan Mentawai', order: 3 },
+  Q_LPK: { org: 'LPK', name: 'Kabupaten Lima Puluh Kota', order: 4 },
+  Q_PDP: { org: 'PDP', name: 'Kabupaten Padang Pariaman', order: 5 },
+  Q_PSM: { org: 'PSM', name: 'Kabupaten Pasaman', order: 6 },
+  Q_PSB: { org: 'PSB', name: 'Kabupaten Pasaman Barat', order: 7 },
+  Q_PSS: { org: 'PSS', name: 'Kabupaten Pesisir Selatan', order: 8 },
+  Q_SJJ: { org: 'SJJ', name: 'Kabupaten Sijunjung', order: 9 },
+  Q_SLK: { org: 'SLK', name: 'Kabupaten Solok', order: 10 },
+  Q_SLS: { org: 'SLS', name: 'Kabupaten Solok Selatan', order: 11 },
+  Q_TND: { org: 'TND', name: 'Kabupaten Tanah Datar', order: 12 },
+  Q_BKT: { org: 'BKT', name: 'Kota Bukittinggi', order: 13 },
+  Q_PDG: { org: 'PDG', name: 'Kota Padang', order: 14 },
+  Q_PPJ: { org: 'PPJ', name: 'Kota Padang Panjang', order: 15 },
+  Q_PRM: { org: 'PRM', name: 'Kota Pariaman', order: 16 },
+  Q_PYK: { org: 'PYK', name: 'Kota Payakumbuh', order: 17 },
+  Q_SWL: { org: 'SWL', name: 'Kota Sawahlunto', order: 18 },
+  Q_KSL: { org: 'KSL', name: 'Kota Solok', order: 19 },
   // Tambahkan ID Kab/Kota lain di sini dan pastikan urutannya (order) diteruskan
 }
 
