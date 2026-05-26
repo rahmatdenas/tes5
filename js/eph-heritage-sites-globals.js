@@ -1,5 +1,4 @@
 'use strict';
-
 // 1. UBAH JUDUL PETA
 const BASE_TITLE = 'Peta Persebaran Masjid – Sumatera Barat';
 
