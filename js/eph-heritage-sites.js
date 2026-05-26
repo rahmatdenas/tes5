@@ -4,10 +4,11 @@ function loadPrimaryData() {
   doPreProcessing();
   populateDesignationTypesData()
     .then(() => {
-      // Menjalankan pencarian Koordinat dan Gambar secara BERSAMAAN (Paralel)
+      // Menjalankan pencarian BERSAMAAN (Paralel)
       return Promise.all([
-        populateCoordinatesData().then(populateMapAndIndex), // Jalur 1: Tarik koordinat lalu gambar petanya
-        populateImageAndWikipediaData()                      // Jalur 2: Tarik gambar & data Wikipedia
+        populateCoordinatesData().then(populateMapAndIndex), // Jalur 1
+        populateImageAndWikipediaData(),                     // Jalur 2
+        populateImportantEventsData()                        // Jalur 3: KODE BARU UNTUK PERISTIWA PENTING
       ]);
     })
     .then(enableApp);
@@ -122,6 +123,43 @@ function populateImageAndWikipediaData() {
         }
       }
     },
+  );
+}
+
+// ============================================================
+// KODE BARU: Fungsi Eksekusi Peristiwa Penting (P793)
+// ============================================================
+function populateImportantEventsData() {
+  return queryWdqsThenProcess(
+    SPARQL_QUERY_4,
+    function(result) {
+      let record = Records[result.siteQid.value];
+      
+      // Jika label peristiwa ada, kita proses
+      if ('eventLabel' in result && result.eventLabel.value) {
+        let eventObj = {
+          label: result.eventLabel.value,
+          time: ''
+        };
+
+        // Logika 1: Jika menggunakan "pada waktu" (P585)
+        if ('pointInTime' in result && result.pointInTime.value) {
+          eventObj.time = result.pointInTime.value.substring(0, 4);
+        } 
+        // Logika 2: Jika menggunakan rentang waktu "bermula sejak" (P580)
+        else if ('startTime' in result && result.startTime.value) {
+          let start = result.startTime.value.substring(0, 4);
+          let end = ('endTime' in result && result.endTime.value) ? result.endTime.value.substring(0, 4) : 'Sekarang';
+          eventObj.time = `${start} – ${end}`;
+        }
+
+        // Cek duplikasi agar tidak ada baris ganda yang tercetak
+        let isDuplicate = record.events.some(e => e.label === eventObj.label && e.time === eventObj.time);
+        if (!isDuplicate) {
+          record.events.push(eventObj);
+        }
+      }
+    }
   );
 }
 
@@ -321,6 +359,37 @@ if (record.pastImage) {
   designationsHtml += '</ul>';
   // ====================================================================
 
+  // ====================================================================
+  // KODE BARU: CETAK HTML UNTUK PERISTIWA PENTING
+  // ====================================================================
+  let eventsHtml = '';
+  if (record.events && record.events.length > 0) {
+    eventsHtml += '<h2>Peristiwa Penting</h2><ul class="designations">';
+    
+    // Looping semua peristiwa yang berhasil ditangkap
+    record.events.forEach(ev => {
+      let timeText = ev.time ? ` (${ev.time})` : ''; // Jika ada tahun, beri tanda kurung
+      eventsHtml += `<li><p><strong>${ev.label}</strong>${timeText}</p></li>`;
+    });
+    
+    eventsHtml += '</ul>';
+  }
+  // ====================================================================
+
+  let panelElem = document.createElement('div');
+  
+  // MASUKKAN eventsHtml KE DALAM INNER HTML
+  panelElem.innerHTML =
+    `<a class="main-wikidata-link" href="https://www.wikidata.org/wiki/${qid}" title="Lihat di Wikidata">` +
+    '<img src="img/wikidata_tiny_logo.png" alt="[Lihat item Wikidata]" /></a>' +
+    titleHtml +
+    figureHtml + 
+    articleHtml +
+    designationsHtml + 
+    eventsHtml;  // <--- VARIABEL BARU DITEMPEL DI SINI
+  
+  record.panelElem = panelElem;
+
   let panelElem = document.createElement('div');
   panelElem.innerHTML =
     `<a class="main-wikidata-link" href="https://www.wikidata.org/wiki/${qid}" title="Lihat di Wikidata">` +
@@ -440,9 +509,9 @@ class Record {
     this.panelElem     = undefined;
     this.indexLi       = undefined;
     this.tahunBerdiri  = undefined;
+    this.events        = []; // KODE BARU: Array penampung peristiwa penting
   }
 }
-
 class SimpleRecord extends Record {
   constructor() {
     super(false);
