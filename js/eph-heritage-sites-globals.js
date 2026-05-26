@@ -1,10 +1,11 @@
 'use strict';
+
 // 1. UBAH JUDUL PETA
 const BASE_TITLE = 'Peta Persebaran Masjid – Sumatera Barat';
 
 // 2. ORGS: Kita akali menjadi singkatan nama daerah untuk label
 const ORGS = {
-AGM: 'Kabupaten Agam',
+  AGM: 'Kabupaten Agam',
   DHM: 'Kabupaten Dharmasraya',
   MTW: 'Kabupaten Kepulauan Mentawai',
   LPK: 'Kabupaten Lima Puluh Kota',
@@ -24,7 +25,7 @@ AGM: 'Kabupaten Agam',
   SWL: 'Kota Sawahlunto',
   KSL: 'Kota Solok',
   // Tambahkan singkatan lain jika perlu
-}
+};
 
 // 3. DESIGNATION_TYPES: Kita akali dengan ID Wikidata Kabupaten/Kota
 // Ini yang akan dibaca oleh Dropdown template Anda
@@ -48,16 +49,14 @@ const DESIGNATION_TYPES = {
   Q7261: { org: 'PYK', name: 'Kota Payakumbuh', order: 17 },
   Q7263: { org: 'SWL', name: 'Kota Sawahlunto', order: 18 },
   Q7266: { org: 'KSL', name: 'Kota Solok', order: 19 },
-  // Tambahkan ID Kab/Kota lain di sini dan pastikan urutannya (order) diteruskan
-}
+};
 
-// 4. SPARQL_QUERY_0: Mengambil data masjid, filter wilayah, dan properti P131
-// 4. SPARQL_QUERY_0: Mengambil data masjid, filter wilayah, dan properti P131
+// 4. SPARQL_QUERY_0: Mengambil data masjid, filter wilayah, properti P131 & P571 (dengan presisi)
 const SPARQL_QUERY_0 =
-`SELECT ?siteQid ?siteLabel ?designationQid ?p131Label ?tahunBerdiriMentah WHERE {
+`SELECT ?siteQid ?siteLabel ?designationQid ?p131Label ?tahunBerdiriMentah ?tahunPresisi WHERE {
   {
     # 1. Kunci wilayahnya
-VALUES ?designation { wd:Q6019 wd:Q6024 wd:Q6038 wd:Q6032 wd:Q6042 wd:Q6048 wd:Q6103 wd:Q6065 wd:Q6055 wd:Q6058 wd:Q6083 wd:Q6093 wd:Q7248 wd:Q7253 wd:Q7256 wd:Q7258 wd:Q7261 wd:Q7263 wd:Q7266 }    
+    VALUES ?designation { wd:Q6019 wd:Q6024 wd:Q6038 wd:Q6032 wd:Q6042 wd:Q6048 wd:Q6103 wd:Q6065 wd:Q6055 wd:Q6058 wd:Q6083 wd:Q6093 wd:Q7248 wd:Q7253 wd:Q7256 wd:Q7258 wd:Q7261 wd:Q7263 wd:Q7266 }    
     # 2. Matikan otak otomatis server
     hint:Query hint:optimizer "None" .
     
@@ -76,13 +75,18 @@ VALUES ?designation { wd:Q6019 wd:Q6024 wd:Q6038 wd:Q6032 wd:Q6042 wd:Q6048 wd:Q
     FILTER(LANG(?p131Label) = "id") .
   }
       
-  OPTIONAL { ?site wdt:P571 ?tahunBerdiriMentah . }
+  OPTIONAL { 
+    ?site p:P571 ?inceptionStmt .
+    ?inceptionStmt psv:P571 ?inceptionNode .
+    ?inceptionNode wikibase:timeValue ?tahunBerdiriMentah ;
+                   wikibase:timePrecision ?tahunPresisi .
+  }
   
   BIND (SUBSTR(STR(?site), 32) AS ?siteQid) .
   BIND (SUBSTR(STR(?designation), 32) AS ?designationQid) .
 } ORDER BY ?siteLabel`;
 
-// 5. SPARQL_QUERY_1: Tetap sama (Hanya mengambil koordinat P625)
+// 5. SPARQL_QUERY_1: Hanya mengambil koordinat P625
 const SPARQL_QUERY_1 =
 `SELECT ?siteQid ?coord WHERE {
   <SPARQLVALUESCLAUSE>
@@ -91,8 +95,6 @@ const SPARQL_QUERY_1 =
   FILTER NOT EXISTS { ?coordStatement pq:P518 ?x }
   BIND (SUBSTR(STR(?site), 32) AS ?siteQid) .
 }`;
-
-// (CATATAN: SPARQL_QUERY_2 SUDAH KITA HAPUS SEPENUHNYA AGAR SERVER TIDAK DOWN)
 
 // 6. SPARQL_QUERY_3: Mengambil gambar dan link Wikipedia
 const SPARQL_QUERY_3 =
@@ -133,7 +135,7 @@ const SPARQL_QUERY_3 =
 
 // 7. SPARQL_QUERY_4: Mengambil Peristiwa Penting (P793) beserta Detail Waktu
 const SPARQL_QUERY_4 =
-`SELECT ?siteQid ?eventLabel ?pointInTime ?startTime ?endTime WHERE {
+`SELECT ?siteQid ?eventLabel ?pointInTime ?ptPrecision ?startTime ?stPrecision ?endTime ?etPrecision WHERE {
   <SPARQLVALUESCLAUSE>
   
   # Ambil node pernyataan peristiwa penting
@@ -146,20 +148,29 @@ const SPARQL_QUERY_4 =
   ?event rdfs:label ?eventLabel . 
   FILTER(LANG(?eventLabel) = "id") .
   
-  # Ambil kualifikasi waktu
-  # P585: pada waktu | P580: bermula sejak | P582: berakhir pada
-  OPTIONAL { ?eventStatement pq:P585 ?pointInTime . }
-  OPTIONAL { ?eventStatement pq:P580 ?startTime . }
-  OPTIONAL { ?eventStatement pq:P582 ?endTime . }
+  # Ambil kualifikasi waktu beserta PRESISINYA menggunakan node pqv (bukan sekadar pq)
+  OPTIONAL { 
+    ?eventStatement pqv:P585 ?ptNode .
+    ?ptNode wikibase:timeValue ?pointInTime ;
+            wikibase:timePrecision ?ptPrecision .
+  }
+  OPTIONAL { 
+    ?eventStatement pqv:P580 ?stNode .
+    ?stNode wikibase:timeValue ?startTime ;
+            wikibase:timePrecision ?stPrecision .
+  }
+  OPTIONAL { 
+    ?eventStatement pqv:P582 ?etNode .
+    ?etNode wikibase:timeValue ?endTime ;
+            wikibase:timePrecision ?etPrecision .
+  }
   
   BIND (SUBSTR(STR(?site), 32) AS ?siteQid) .
 }`;
 
-// 7. ABOUT_SPARQL_QUERY: Disesuaikan menggunakan logika wilayah
-const ABOUT_SPARQL_QUERY =
-`
-`;
+// 8. ABOUT_SPARQL_QUERY
+const ABOUT_SPARQL_QUERY = ``;
 
 // Globals
 var DesignationIndex;
-var Records = {}; // Memastikan Records dideklarasikan jika template membutuhkannya
+var Records = {};
