@@ -1,5 +1,54 @@
 'use strict';
 
+// ============================================================
+// FUNGSI UTILITAS (Penerjemah Tanggal & Presisi Wikidata)
+// ============================================================
+function formatWikidataDate(dateString, precision) {
+  if (!dateString) return null;
+  
+  // Buang tanda + di depan format ISO Wikidata
+  let cleanStr = dateString.replace(/^[+-]/, ''); 
+  
+  // Ambil potongan bagian tahun, bulan, dan hari
+  let yearStr  = cleanStr.substring(0, 4);
+  let monthStr = cleanStr.substring(5, 7);
+  let dayStr   = cleanStr.substring(8, 10);
+  let yearNum  = parseInt(yearStr);
+
+  // Kamus bulan Bahasa Indonesia
+  const bulanIndo = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
+  let prec = parseInt(precision) || 9; // Default ke presisi tahunan (9)
+
+  if (prec === 11) {
+    // Presisi Hari (Contoh: 1 Januari 2007)
+    return `${parseInt(dayStr)} ${bulanIndo[parseInt(monthStr)]} ${yearStr}`;
+  } 
+  else if (prec === 10) {
+    // Presisi Bulan (Contoh: Januari 2007)
+    return `${bulanIndo[parseInt(monthStr)]} ${yearStr}`;
+  } 
+  else if (prec === 9) {
+    // Presisi Tahun (Contoh: 2007)
+    return yearStr;
+  } 
+  else if (prec === 8) {
+    // Presisi Dekade (Contoh: 1980-an)
+    return `${yearStr}-an`;
+  } 
+  else if (prec === 7) {
+    // Presisi Abad (Contoh: Abad ke-20)
+    let century = Math.ceil(yearNum / 100);
+    return `Abad ke-${century}`;
+  } 
+  else {
+    return yearStr;
+  }
+}
+
+// ============================================================
+// FUNGSI UTAMA
+// ============================================================
 function loadPrimaryData() {
   doPreProcessing();
   populateDesignationTypesData()
@@ -8,13 +57,12 @@ function loadPrimaryData() {
       return Promise.all([
         populateCoordinatesData().then(populateMapAndIndex), // Jalur 1
         populateImageAndWikipediaData(),                     // Jalur 2
-        populateImportantEventsData()                        // Jalur 3: KODE BARU UNTUK PERISTIWA PENTING
+        populateImportantEventsData()                        // Jalur 3: PERISTIWA PENTING
       ]);
     })
     .then(enableApp);
 }
 
-// Performs pre data post-processing: mainly initialize static content
 function doPreProcessing() {
   let anchorElem = document.getElementById('wdqs-link');
   anchorElem.href = 'https://query.wikidata.org/#' + encodeURIComponent(ABOUT_SPARQL_QUERY);
@@ -45,21 +93,18 @@ function populateDesignationTypesData() {
         record.designations[designationQid] = new Designation();
       }
       
-    // ============================================================
-      // KODE BARU: Simpan label P131 dan Gambar Daerah Administratif
-      // ============================================================
       if ('p131Label' in result && result.p131Label.value) {
         record.lokasiSpesifik = result.p131Label.value;
       }
 
-      // Tambahan untuk menyimpan nama file gambar daerahnya
       if ('p131Image' in result && result.p131Image.value) {
         record.lokasiImage = extractImageFilename(result.p131Image);
       }
-      // ============================================================
 
+      // LOGIKA TAHUN BERDIRI (P571) & PRESISI
       if (!record.tahunBerdiri && result.tahunBerdiriMentah && result.tahunBerdiriMentah.value) {
-        record.tahunBerdiri = result.tahunBerdiriMentah.value.substring(0, 4);
+        let precision = result.tahunPresisi ? result.tahunPresisi.value : 9;
+        record.tahunBerdiri = formatWikidataDate(result.tahunBerdiriMentah.value, precision);
       }
     },
     function() {
@@ -69,6 +114,7 @@ function populateDesignationTypesData() {
     },
   );
 }
+
 function populateCoordinatesData() {
   return queryWdqsThenProcess(
     SPARQL_QUERY_1,
@@ -84,39 +130,32 @@ function populateCoordinatesData() {
   );
 }
 
-// FUNGSI populateDesignationDetailsData() SUDAH DIHAPUS SEPENUHNYA
-
 function populateImageAndWikipediaData() {
   return queryWdqsThenProcess(
     SPARQL_QUERY_3,
     function(result) {
       let record = Records[result.siteQid.value];
       
-      // 1. GAMBAR UTAMA (Gembok dipasang kembali agar mengunci gambar pertama yang masuk)
       if ('image' in result) {
         if (!record.imageFilename) {
           record.imageFilename = extractImageFilename(result.image);
         }
       }
       
-      // 2. ARTIKEL WIKIPEDIA
       if ('wikipediaUrlTitle' in result) {
         record.articleTitle = decodeURIComponent(result.wikipediaUrlTitle.value);
       }
 
-      // 3. GAMBAR LINGKUNGAN SEKITAR (Menggunakan unshift untuk membalikkan kembali urutan baris query)
       if (!record.vicinityImages) {
         record.vicinityImages = [];
       }
       if ('vicinityImage' in result) {
         let fotoTambahan = extractImageFilename(result.vicinityImage);
         if (!record.vicinityImages.includes(fotoTambahan)) {
-          // unshift akan memasukkan gambar baru ke posisi paling depan array
           record.vicinityImages.unshift(fotoTambahan);
         }
       }
 
-      // 4. GAMBAR MASA LALU (Gembok dipasang kembali agar tidak tertimpa baris berikutnya)
       if ('pastImage' in result) {
         if (!record.pastImage) {
           record.pastImage = extractImageFilename(result.pastImage);
@@ -126,34 +165,35 @@ function populateImageAndWikipediaData() {
   );
 }
 
-// ============================================================
-// KODE BARU: Fungsi Eksekusi Peristiwa Penting (P793)
-// ============================================================
 function populateImportantEventsData() {
   return queryWdqsThenProcess(
     SPARQL_QUERY_4,
     function(result) {
       let record = Records[result.siteQid.value];
       
-      // Jika label peristiwa ada, kita proses
       if ('eventLabel' in result && result.eventLabel.value) {
         let eventObj = {
           label: result.eventLabel.value,
           time: ''
         };
 
-        // Logika 1: Jika menggunakan "pada waktu" (P585)
-        if ('pointInTime' in result && result.pointInTime.value) {
-          eventObj.time = result.pointInTime.value.substring(0, 4);
-        } 
-        // Logika 2: Jika menggunakan rentang waktu "bermula sejak" (P580)
-        else if ('startTime' in result && result.startTime.value) {
-          let start = result.startTime.value.substring(0, 4);
-          let end = ('endTime' in result && result.endTime.value) ? result.endTime.value.substring(0, 4) : 'Sekarang';
-          eventObj.time = `${start} – ${end}`;
+        // Siapkan variabel waktu & baca presisinya masing-masing menggunakan fungsi kalender pintar
+        let pt = result.pointInTime ? formatWikidataDate(result.pointInTime.value, result.ptPrecision ? result.ptPrecision.value : 9) : null;
+        let st = result.startTime ? formatWikidataDate(result.startTime.value, result.stPrecision ? result.stPrecision.value : 9) : null;
+        let et = result.endTime ? formatWikidataDate(result.endTime.value, result.etPrecision ? result.etPrecision.value : 9) : null;
+
+        // Logika pengisian teks waktu di antarmuka
+        if (pt) {
+          eventObj.time = pt;
+        } else if (st && et) {
+          eventObj.time = `${st} – ${et}`;
+        } else if (st) {
+          eventObj.time = `Mulai ${st}`;
+        } else if (et) {
+          eventObj.time = `Selesai ${et}`;
         }
 
-        // Cek duplikasi agar tidak ada baris ganda yang tercetak
+        // Cek duplikasi agar tak berulang
         let isDuplicate = record.events.some(e => e.label === eventObj.label && e.time === eventObj.time);
         if (!isDuplicate) {
           record.events.push(eventObj);
@@ -287,18 +327,11 @@ function generateRecordDetails(qid) {
   let titleHtml = `<h1>${record.title}</h1>`;
   let figureHtml = generateFigure(record.imageFilename);
 
-  // ====================================================================
-  // KODE BARU: SKENARIO PINTAR UNTUK MENCETAK GAMBAR LINGKUNGAN SEKITAR
-  // ====================================================================
-if (record.vicinityImages && record.vicinityImages.length > 0) {
-  record.vicinityImages.forEach(imgFilename => {
-
-    // Tambahkan langsung tanpa pembungkus DIV
-    figureHtml += generateFigure(imgFilename);
-
-  });
-}
-  // ====================================================================
+  if (record.vicinityImages && record.vicinityImages.length > 0) {
+    record.vicinityImages.forEach(imgFilename => {
+      figureHtml += generateFigure(imgFilename);
+    });
+  }
 
   let articleHtml;
   if (record.articleTitle) {
@@ -308,20 +341,14 @@ if (record.vicinityImages && record.vicinityImages.length > 0) {
     articleHtml = '<div class="article main-text nodata"><p>Situs ini belum memiliki artikel Wikipedia berbahasa Indonesia.</p></div>';
   }
 
-// ====================================================================
-  // PENYUSUNAN BLOK INFORMASI (STRUKTUR HTML BARU)
-  // ====================================================================
   let designationsHtml = '<h2>Informasi</h2>';
 
-// 1. Cetak gambar daerah langsung di bawah H2 (di luar <ul>)
-if (record.pastImage) {
+  if (record.pastImage) {
     designationsHtml += generateFigure(record.pastImage);
   }
 
-  // 2. Buka tag <ul> untuk daftar informasi
   designationsHtml += '<ul class="designations">';
 
-  // 3. Looping isi informasi daerah
   Object.keys(record.designations)
     .map(qid => [qid, DESIGNATION_TYPES[qid].order]) 
     .sort((a, b) => a[1] - b[1])
@@ -330,7 +357,6 @@ if (record.pastImage) {
 
       let type = DESIGNATION_TYPES[designationQid];
 
-      // Format Tahun Berdiri
       let infoTahunHtml = '';
       if (record.tahunBerdiri) {
         infoTahunHtml = `<p>Didirikan: ${record.tahunBerdiri}</p>`;
@@ -338,11 +364,9 @@ if (record.pastImage) {
         infoTahunHtml = `<p>Didirikan: Data belum tersedia</p>`;
       }
 
-      // Format Terletak di
       let teksLokasi = record.lokasiSpesifik || ORGS[type.org];
       let infoLokasiHtml = `<p>Terletak di: ${teksLokasi}</p>`;
 
-      // Masukkan ke dalam <li> TANPA gambar lokasi (karena sudah di atas)
       designationsHtml +=
         '<li>' +
           `<h3>${type.name}</h3>` +
@@ -355,30 +379,23 @@ if (record.pastImage) {
         
     });
     
-  // 4. Tutup tag <ul>
   designationsHtml += '</ul>';
-  // ====================================================================
 
-  // ====================================================================
-  // KODE BARU: CETAK HTML UNTUK PERISTIWA PENTING
-  // ====================================================================
+  // CETAK HTML PERISTIWA PENTING
   let eventsHtml = '';
   if (record.events && record.events.length > 0) {
-    eventsHtml += '<h2>Peristiwa Penting</h2><ul class="designations">';
+    eventsHtml += '<h2>Peristiwa Penting</h2><ul class="designations" style="margin-left:-65px"><li>';
     
-    // Looping semua peristiwa yang berhasil ditangkap
     record.events.forEach(ev => {
-      let timeText = ev.time ? ` (${ev.time})` : ''; // Jika ada tahun, beri tanda kurung
-      eventsHtml += `<li><p><strong>${ev.label}</strong>${timeText}</p></li>`;
+      let timeText = ev.time ? ` (${ev.time})` : ''; 
+      eventsHtml += `<p><strong>${ev.label}</strong>${timeText}</p>`;
     });
     
-    eventsHtml += '</ul>';
+    eventsHtml += '</li></ul>';
   }
-  // ====================================================================
 
   let panelElem = document.createElement('div');
   
-  // MASUKKAN eventsHtml KE DALAM INNER HTML
   panelElem.innerHTML =
     `<a class="main-wikidata-link" href="https://www.wikidata.org/wiki/${qid}" title="Lihat di Wikidata">` +
     '<img src="img/wikidata_tiny_logo.png" alt="[Lihat item Wikidata]" /></a>' +
@@ -386,7 +403,7 @@ if (record.pastImage) {
     figureHtml + 
     articleHtml +
     designationsHtml + 
-    eventsHtml;  // <--- VARIABEL BARU DITEMPEL DI SINI
+    eventsHtml;  
   
   record.panelElem = panelElem;
 
@@ -468,8 +485,7 @@ out skel qt;`
 
 // ============================================================
 // CLASSES
-// ------------------------------------------------------------
-
+// ============================================================
 class Designation {
   constructor() {
     this.date             = undefined;
@@ -499,9 +515,10 @@ class Record {
     this.panelElem     = undefined;
     this.indexLi       = undefined;
     this.tahunBerdiri  = undefined;
-    this.events        = []; // KODE BARU: Array penampung peristiwa penting
+    this.events        = []; 
   }
 }
+
 class SimpleRecord extends Record {
   constructor() {
     super(false);
