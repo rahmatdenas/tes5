@@ -132,6 +132,30 @@ const SPARQL_QUERY_3 =
   BIND (SUBSTR(STR(?site), 32) AS ?siteQid) .
 } GROUP BY ?siteQid ?vicinityImage`;
 
+// 7. SPARQL_QUERY_4: Mengambil Peristiwa Penting (P793) beserta Detail Waktu
+const SPARQL_QUERY_4 =
+`SELECT ?siteQid ?eventLabel ?pointInTime ?startTime ?endTime WHERE {
+  <SPARQLVALUESCLAUSE>
+  
+  # Ambil node pernyataan peristiwa penting
+  ?site p:P793 ?eventStatement .
+  
+  # Ambil objek peristiwanya
+  ?eventStatement ps:P793 ?event .
+  
+  # Ambil nama peristiwanya dalam bahasa Indonesia
+  ?event rdfs:label ?eventLabel . 
+  FILTER(LANG(?eventLabel) = "id") .
+  
+  # Ambil kualifikasi waktu
+  # P585: pada waktu | P580: bermula sejak | P582: berakhir pada
+  OPTIONAL { ?eventStatement pq:P585 ?pointInTime . }
+  OPTIONAL { ?eventStatement pq:P580 ?startTime . }
+  OPTIONAL { ?eventStatement pq:P582 ?endTime . }
+  
+  BIND (SUBSTR(STR(?site), 32) AS ?siteQid) .
+}`;
+
 // 7. ABOUT_SPARQL_QUERY: Disesuaikan menggunakan logika wilayah
 const ABOUT_SPARQL_QUERY =
 `
